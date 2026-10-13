@@ -240,10 +240,10 @@
 
   /* ===== заявка через форму Тильды на странице (скрытая, уже подключена к Битрикс24) ===== */
   const PK='fourit_quiz_pending';let tBusy=0,tNext=null,tOnce=0;
-  const tHide=f=>{const b=f.closest('.r')||f.closest('[id^=rec]');if(b&&!b.contains($('#s-intro')))b.style.cssText+=';position:absolute!important;left:-10000px!important;top:0;width:1px;height:1px;overflow:hidden'};
+  const tHide=f=>{const b=f.closest('.r')||f.closest('[id^=rec]');if(b&&!b.contains($('#s-intro'))){b.style.cssText+=';opacity:0!important;pointer-events:none!important';if(!b.dataset.qh){b.dataset.qh='1';setTimeout(()=>{if(f.isConnected&&[...f.querySelectorAll('input')].some(i=>i.type==='tel'||/phone|тел|\+7/i.test(i.name+' '+i.placeholder)))b.style.cssText+=';position:absolute!important;left:-10000px!important;top:0;width:1px;height:1px;overflow:hidden'},300)}}};
   function findTildaForm(){
-    const ok=[...document.forms].filter(f=>f.id!=='form'&&!f.closest('.screen')&&!f.closest('.t-popup,[class*=popup]')&&[...f.querySelectorAll('input')].some(i=>i.type==='tel'||/phone|тел|\+7/i.test(i.name+' '+i.placeholder)));
-    return ok.find(f=>f.closest('.t396'))||ok.find(f=>f.classList.contains('t-form'))||ok[0]||null;
+    const ok=[...document.forms].filter(f=>f.id!=='form'&&!f.closest('.screen')&&!f.closest('.t-popup,[class*=popup]')&&!f.closest('[class*=b24]')&&!f.querySelector('.b24-form-control')&&[...f.querySelectorAll('input')].some(i=>i.type==='tel'||/phone|тел|\+7/i.test(i.name+' '+i.placeholder))),n=f=>f.querySelectorAll('input:not([type=hidden]):not([type=checkbox]),textarea,select').length;
+    return ok.reduce((a,f)=>!a||n(f)>n(a)?f:a,null);
   }
   const tSet=(el,v)=>{const P=el instanceof HTMLTextAreaElement?HTMLTextAreaElement:HTMLInputElement;Object.getOwnPropertyDescriptor(P.prototype,'value').set.call(el,v);['input','change','blur'].forEach(t=>el.dispatchEvent(new Event(t,{bubbles:true})))};
   function tRelay(p){
@@ -256,12 +256,13 @@
     const I=[...f.querySelectorAll('input')].filter(i=>i.type!=='hidden'&&i.type!=='checkbox');
     const nm=I.find(i=>/^(text|)$/.test(i.type)&&/name|имя/i.test(i.name+' '+i.placeholder)&&!/mail|почт|phone|тел/i.test(i.name+' '+i.placeholder));
     const ph=I.find(i=>i.type==='tel'||/phone|тел|\+7/i.test(i.name+' '+i.placeholder));
-    const tk=f.querySelector('textarea')||I.find(i=>i!==nm&&i!==ph&&/задач|textarea|comment|коммент/i.test(i.name+' '+i.placeholder));
+    const tk=f.querySelector('textarea')||I.find(i=>i!==nm&&i!==ph&&i.type!=='email'&&!/mail|почт/i.test(i.name+' '+i.placeholder)&&/задач|textarea|comment|коммент|input/i.test(i.name+' '+i.placeholder));
     if(nm)tSet(nm,p.name||'Квиз');
     const d=(p.phone||'').replace(/\D/g,''),l=d.length>10&&/^[78]/.test(d)?d.slice(1):d,full=l.length===10?'+7'+l:'+'+d;
     if(d){
-      if(ph){const mk=/mask/i.test(ph.className+' '+[...ph.attributes].map(a=>a.name).join(' '))||/0{3}/.test(ph.placeholder);tSet(ph,mk?l:full)}
-      f.querySelectorAll('input[type=hidden][name*=phone i],input[name="tildaspec-phone-part[]"]').forEach(h=>tSet(h,h.name==='tildaspec-phone-part[]'?l:full));
+      const tel=f.querySelector('.t-input-phonemask');let pm=0;
+      if(tel&&typeof window.t_form_phonemask__setValue==='function')try{window.t_form_phonemask__setValue(tel.closest('.t-input-group')||tel.parentElement,full);['input','change','blur'].forEach(t=>tel.dispatchEvent(new Event(t,{bubbles:true})));pm=1}catch(e){}
+      if(!pm){if(ph){const mk=/mask/i.test(ph.className+' '+[...ph.attributes].map(a=>a.name).join(' '))||/0{3}/.test(ph.placeholder);tSet(ph,mk?l:full)}f.querySelectorAll('input[type=hidden][name*=phone i],input[name="tildaspec-phone-part[]"]').forEach(h=>{if(!h.classList.contains('js-phonemask-result-iso')&&!/-iso$/i.test(h.name))tSet(h,h.name==='tildaspec-phone-part[]'?l:full)})}
     }
     if(tk)tSet(tk,p.text+'\nКанал: '+p.channel+'\nКод: '+p.code);
     f.querySelectorAll('input[type=checkbox]').forEach(c=>{c.checked=true;c.dispatchEvent(new Event('change',{bubbles:true}))});
