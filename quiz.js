@@ -251,12 +251,14 @@
     if(!f){console.warn('[quiz] Tilda form not found');return}
     if(tBusy){tNext=p;return}
     tBusy=1;tHide(f);
-    f.querySelectorAll('[data-tilda-req],[required]').forEach(e=>{e.removeAttribute('data-tilda-req');e.removeAttribute('required')});
+    const rec=f.closest('.r')||f.closest('[id^=rec]')||document;
+    (rec||f).querySelectorAll('[data-tilda-req],[required]').forEach(e=>{e.removeAttribute('data-tilda-req');e.removeAttribute('required')});
     f.removeAttribute('data-success-url');
+    const allI=[...(rec||f).querySelectorAll('input:not([type=hidden]):not([type=checkbox]),textarea,select')];
     const I=[...f.querySelectorAll('input')].filter(i=>i.type!=='hidden'&&i.type!=='checkbox');
-    const nm=I.find(i=>/^(text|)$/.test(i.type)&&/name|имя/i.test(i.name+' '+i.placeholder)&&!/mail|почт|phone|тел/i.test(i.name+' '+i.placeholder));
+    const nm=I.find(i=>/^(text|)$/.test(i.type)&&/name|имя/i.test(i.name+' '+i.placeholder)&&!/mail|почт|phone|тел/i.test(i.name+' '+i.placeholder))||allI.find(i=>/^(text|)$/.test(i.type)&&/name|имя/i.test(i.name+' '+i.placeholder)&&!/mail|почт|phone|тел/i.test(i.name+' '+i.placeholder));
     const ph=I.find(i=>i.type==='tel'||/phone|тел|\+7/i.test(i.name+' '+i.placeholder));
-    const tk=f.querySelector('textarea')||I.find(i=>i!==nm&&i!==ph&&i.type!=='email'&&!/mail|почт/i.test(i.name+' '+i.placeholder)&&/задач|textarea|comment|коммент|input/i.test(i.name+' '+i.placeholder));
+    const tk=f.querySelector('textarea')||I.find(i=>i!==nm&&i!==ph&&i.type!=='email'&&!/mail|почт/i.test(i.name+' '+i.placeholder)&&/задач|textarea|comment|коммент|input/i.test(i.name+' '+i.placeholder))||(rec.querySelector('textarea')||allI.find(i=>i!==nm&&i!==ph&&i.type!=='email'&&!/mail|почт/i.test(i.name+' '+i.placeholder)&&/задач|textarea|comment|коммент|input/i.test(i.name+' '+i.placeholder)));
     if(nm)tSet(nm,p.name||'Квиз');
     const d=(p.phone||'').replace(/\D/g,''),l=d.length>10&&/^[78]/.test(d)?d.slice(1):d,full=l.length===10?'+7'+l:'+'+d;
     if(d){
@@ -264,15 +266,21 @@
       if(tel&&typeof window.t_form_phonemask__setValue==='function')try{window.t_form_phonemask__setValue(tel.closest('.t-input-group')||tel.parentElement,full);['input','change','blur'].forEach(t=>tel.dispatchEvent(new Event(t,{bubbles:true})));pm=1}catch(e){}
       if(!pm){if(ph){const mk=/mask/i.test(ph.className+' '+[...ph.attributes].map(a=>a.name).join(' '))||/0{3}/.test(ph.placeholder);tSet(ph,mk?l:full)}f.querySelectorAll('input[type=hidden][name*=phone i],input[name="tildaspec-phone-part[]"]').forEach(h=>{if(!h.classList.contains('js-phonemask-result-iso')&&!/-iso$/i.test(h.name))tSet(h,h.name==='tildaspec-phone-part[]'?l:full)})}
     }
-    if(tk)tSet(tk,p.text+'\nКанал: '+p.channel+'\nКод: '+p.code);
-    f.querySelectorAll('input[type=checkbox]').forEach(c=>{c.checked=true;c.dispatchEvent(new Event('change',{bubbles:true}))});
+    const taskText=p.text+'\nКанал: '+p.channel+'\nКод: '+p.code;
+    if(tk)tSet(tk,taskText);
+    const ensure=(k,v)=>{let el=f.querySelector(`[name="${k}" i]`);if(!el){el=document.createElement('input');el.type='hidden';el.name=k;f.appendChild(el)}el.value=v};
+    ensure('Name',p.name||'Квиз');
+    ensure('Input',taskText);
+    ensure('comments',taskText);
+    ensure('comment',taskText);
+    (rec||f).querySelectorAll('input[type=checkbox]').forEach(c=>{c.checked=true;c.dispatchEvent(new Event('change',{bubbles:true}))});
     const sb='.js-successbox,.t-form__successbox';
     f.classList.remove('js-send-form-success');
     f.querySelectorAll(sb).forEach(e=>{e.style.display='none'});
     const b=f.querySelector('[type=submit],.t-submit,.tn-form__submit button');
     if(!b){console.warn('[quiz] Tilda submit button not found');tBusy=0;return}
     b.click();
-    const fl=[nm,tk].filter(Boolean),ok=()=>f.classList.contains('js-send-form-success')||[...f.querySelectorAll(sb)].some(e=>getComputedStyle(e).display!=='none')||(fl.length>0&&fl.every(e=>!e.value));
+    const fl=[nm,tk].filter(Boolean),ok=()=>f.classList.contains('js-send-form-success')||[...f.querySelectorAll(sb)].some(e=>getComputedStyle(e).display!=='none')||(rec&&rec.querySelector('.js-send-form-success'))||(fl.length>0&&fl.every(e=>!e.value));
     let n=0;const t=setInterval(()=>{
       n++;const s=ok();
       if(s||n>30){
